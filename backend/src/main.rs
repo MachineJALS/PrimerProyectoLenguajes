@@ -5,6 +5,7 @@ use tokio::sync::Mutex;
 use std::sync::Arc;
 use std::collections::HashMap;
 use rand::seq::SliceRandom;
+use rand::prelude::*;
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 enum EstadoAsiento {
@@ -301,3 +302,15 @@ fn mostrar_estados_seccion(seccion: &Seccion) {
         );
     }
 }
+
+
+// Función encargada de validad tarjetas
+fn validad_tarjeta(tarjeta: &str) -> bool {
+    let mut aprobado = tarjeta.len() == 16 && tarjeta.chars().all(|c| c.is_digit(10));
+    if aprobado {
+        aprobado = rand::random::<bool>();
+    }
+    aprobado
+}
+
+

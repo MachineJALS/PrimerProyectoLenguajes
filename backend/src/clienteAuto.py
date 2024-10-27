@@ -1,6 +1,4 @@
-import socket
-import json
-import time
+import socket, json, time
 
 # Listas predefinidas de opciones
 cantidades_asientos = [5, 2, 2, 7]

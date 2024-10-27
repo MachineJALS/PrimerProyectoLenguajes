@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reserva de Asientos</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Reserva de Asientos</h1>
+
+        <!-- Formulario de solicitud de asientos -->
+        <div class="form-section">
+            <h2>Solicitar Asientos</h2>
+            <form id="reserva-form">
+                <label for="cantidad">Cantidad de asientos:</label>
+                <input type="number" id="cantidad" name="cantidad" required>
+
+                <label for="precio_max">Precio máximo por asiento:</label>
+                <input type="number" step="0.01" id="precio_max" name="precio_max" required>
+
+                <button type="submit">Reservar</button>
+            </form>
+        </div>
+
+        <!-- Formulario de simulación de pago -->
+        <div class="form-section">
+            <h2>Realizar Pago</h2>
+            <form id="pago-form">
+                <label for="tarjeta">Número de tarjeta:</label>
+                <input type="text" id="tarjeta" name="tarjeta" placeholder="16 dígitos" required>
+
+                <button type="submit">Pagar</button>
+            </form>
+        </div>
+
+        <!-- Estado de los asientos -->
+        <div id="estado-asientos">
+            <h2>Estado de los Asientos</h2>
+            <pre id="resultado"></pre>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
