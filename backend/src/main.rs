@@ -5,7 +5,6 @@ use tokio::sync::Mutex;
 use std::sync::Arc;
 use std::collections::HashMap;
 use rand::seq::SliceRandom;
-use rand::prelude::*;
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 enum EstadoAsiento {
@@ -91,8 +90,8 @@ async fn main() {
 
     //Cambiar la ip a la ip de la maquina 
     //ipconfing
-    let listener = TcpListener::bind("192.168.10.3:8080").await.unwrap();
-    println!("Servidor escuchando en 192.168.10.3:8080");
+    let listener = TcpListener::bind("192.168.1.1:8080").await.unwrap();
+    println!("Servidor escuchando en 192.168.1.1:8080");
 
     loop {
         let (socket, _) = listener.accept().await.unwrap();
@@ -302,15 +301,4 @@ fn mostrar_estados_seccion(seccion: &Seccion) {
         );
     }
 }
-
-
-// Función encargada de validad tarjetas
-fn validad_tarjeta(tarjeta: &str) -> bool {
-    let mut aprobado = tarjeta.len() == 16 && tarjeta.chars().all(|c| c.is_digit(10));
-    if aprobado {
-        aprobado = rand::random::<bool>();
-    }
-    aprobado
-}
-
 
