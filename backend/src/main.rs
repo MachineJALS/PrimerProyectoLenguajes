@@ -1,16 +1,14 @@
 use serde::{Deserialize, Serialize};
-use serde_json::json;
-use tokio::net::{TcpListener, TcpStream};
+use tokio::net::TcpListener;
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use tokio::sync::Mutex;
 use std::sync::Arc;
 use std::collections::HashMap;
-use std::fs::File;
-use std::io::Write;
 use rand::seq::SliceRandom;
 use tokio_tungstenite::accept_async;
 use tokio_tungstenite::tungstenite::protocol::Message;
 use rand::prelude::*;
+use futures::StreamExt;
 
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -131,7 +129,7 @@ async fn handle_client(stream: tokio::net::TcpStream, secciones: Arc<Mutex<HashM
             // Verificar asientos antes de la reserva
             println!("Estado de los asientos antes de la reserva:");
             verificar_asientos(&secciones);
-            guardar_estados_en_json(&secciones);
+            //guardar_estados_en_json(&secciones);
             
             // Buscar los mejores asientos
             let mut mejores_asientos = buscar_mejores_asientos(&secciones, solicitud.cantidad, solicitud.precio_max);
@@ -199,7 +197,7 @@ async fn handle_client(stream: tokio::net::TcpStream, secciones: Arc<Mutex<HashM
                     // Verificar asientos después de la acción del cliente
                     println!("Estado de los asientos después de la acción del cliente:");
                     verificar_asientos(&secciones);
-                    guardar_estados_en_json(&secciones);
+                    //guardar_estados_en_json(&secciones);
 
                 }
                 Err(e) => {
@@ -312,43 +310,4 @@ fn mostrar_estados_seccion(seccion: &Seccion) {
             asiento.fila, asiento.numero, asiento.estado, asiento.precio
         );
     }
-}
-
-// Funcion para subir todos los asientos a un json
-fn guardar_estados_en_json(secciones: &HashMap<char, Seccion>) -> std::io::Result<()> {
-    let mut asientos_json = Vec::new();
-    
-    // Establece la ruta predeterminada
-    let ruta = "../../frontend/asientos.json";
-
-    // Itera por cada sección y asiento para construir el JSON
-    for (nombre_seccion, seccion) in secciones {
-        for asiento in &seccion.asientos {
-            let estado_asiento = match asiento.estado {
-                EstadoAsiento::Libre => "libre",
-                EstadoAsiento::Reservado => "reservado",
-                EstadoAsiento::Comprado => "ocupado",
-            };
-
-            let asiento_json = json!({
-                "Seccion": nombre_seccion.to_string(),
-                "fila": asiento.fila,
-                "columna": asiento.numero,
-                "estado": estado_asiento,
-            });
-
-            asientos_json.push(asiento_json);
-        }
-    }
-
-    // Convierte los datos de asientos a JSON
-    let contenido_json = serde_json::to_string_pretty(&asientos_json)?;
-
-    // Crea o sobrescribe el archivo en la ruta especificada
-    let mut archivo = File::create(ruta)?;
-    archivo.write_all(contenido_json.as_bytes())?;
-
-    println!("Asientos guardados en JSON en la ruta: {}", ruta);
-
-    Ok(())
 }

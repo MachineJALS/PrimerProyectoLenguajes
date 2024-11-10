@@ -36,7 +36,7 @@ def main():
     print("Bienvenido al sistema TSOMachine. Realizando solicitudes automáticas...")
 
     # Dirección del servidor y puerto
-    server_address = ('192.168.10.3', 8080)
+    server_address = ('127.0.0.1', 8080)
 
     num_requests = min(len(cantidades_asientos), len(precios_maximos))  # Número de solicitudes a enviar
 
