@@ -129,7 +129,6 @@ async fn handle_client(stream: tokio::net::TcpStream, secciones: Arc<Mutex<HashM
             // Verificar asientos antes de la reserva
             println!("Estado de los asientos antes de la reserva:");
             verificar_asientos(&secciones);
-            //guardar_estados_en_json(&secciones);
             
             // Buscar los mejores asientos
             let mut mejores_asientos = buscar_mejores_asientos(&secciones, solicitud.cantidad, solicitud.precio_max);
@@ -197,7 +196,6 @@ async fn handle_client(stream: tokio::net::TcpStream, secciones: Arc<Mutex<HashM
                     // Verificar asientos después de la acción del cliente
                     println!("Estado de los asientos después de la acción del cliente:");
                     verificar_asientos(&secciones);
-                    //guardar_estados_en_json(&secciones);
 
                 }
                 Err(e) => {
