@@ -1,0 +1,11 @@
+C:\Users\usuario\Documents\GitHub\PrimerProyectoLenguajes\backend\target\debug\deps\liburl-9b97b298814b96d7.rmeta: C:\Users\usuario\.cargo\registry\src\index.crates.io-6f17d22bba15001f\url-2.5.3\src/lib.rs C:\Users\usuario\.cargo\registry\src\index.crates.io-6f17d22bba15001f\url-2.5.3\src\host.rs C:\Users\usuario\.cargo\registry\src\index.crates.io-6f17d22bba15001f\url-2.5.3\src\origin.rs C:\Users\usuario\.cargo\registry\src\index.crates.io-6f17d22bba15001f\url-2.5.3\src\parser.rs C:\Users\usuario\.cargo\registry\src\index.crates.io-6f17d22bba15001f\url-2.5.3\src\path_segments.rs C:\Users\usuario\.cargo\registry\src\index.crates.io-6f17d22bba15001f\url-2.5.3\src\slicing.rs C:\Users\usuario\.cargo\registry\src\index.crates.io-6f17d22bba15001f\url-2.5.3\src\quirks.rs
+
+C:\Users\usuario\Documents\GitHub\PrimerProyectoLenguajes\backend\target\debug\deps\url-9b97b298814b96d7.d: C:\Users\usuario\.cargo\registry\src\index.crates.io-6f17d22bba15001f\url-2.5.3\src/lib.rs C:\Users\usuario\.cargo\registry\src\index.crates.io-6f17d22bba15001f\url-2.5.3\src\host.rs C:\Users\usuario\.cargo\registry\src\index.crates.io-6f17d22bba15001f\url-2.5.3\src\origin.rs C:\Users\usuario\.cargo\registry\src\index.crates.io-6f17d22bba15001f\url-2.5.3\src\parser.rs C:\Users\usuario\.cargo\registry\src\index.crates.io-6f17d22bba15001f\url-2.5.3\src\path_segments.rs C:\Users\usuario\.cargo\registry\src\index.crates.io-6f17d22bba15001f\url-2.5.3\src\slicing.rs C:\Users\usuario\.cargo\registry\src\index.crates.io-6f17d22bba15001f\url-2.5.3\src\quirks.rs
+
+C:\Users\usuario\.cargo\registry\src\index.crates.io-6f17d22bba15001f\url-2.5.3\src/lib.rs:
+C:\Users\usuario\.cargo\registry\src\index.crates.io-6f17d22bba15001f\url-2.5.3\src\host.rs:
+C:\Users\usuario\.cargo\registry\src\index.crates.io-6f17d22bba15001f\url-2.5.3\src\origin.rs:
+C:\Users\usuario\.cargo\registry\src\index.crates.io-6f17d22bba15001f\url-2.5.3\src\parser.rs:
+C:\Users\usuario\.cargo\registry\src\index.crates.io-6f17d22bba15001f\url-2.5.3\src\path_segments.rs:
+C:\Users\usuario\.cargo\registry\src\index.crates.io-6f17d22bba15001f\url-2.5.3\src\slicing.rs:
+C:\Users\usuario\.cargo\registry\src\index.crates.io-6f17d22bba15001f\url-2.5.3\src\quirks.rs:

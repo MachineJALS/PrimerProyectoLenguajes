@@ -2,24 +2,15 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Solicitar Asientos</title>
+    <title>Ventana Principal</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div class="container">
-        <h1>Solicitar Asientos</h1>
-        <form id="reserva-form">
-            <label for="cantidad">Cantidad de asientos:</label>
-            <input type="number" id="cantidad" name="cantidad" required>
-
-            <label for="precio_max">Precio máximo por asiento:</label>
-            <input type="number" step="0.01" id="precio_max" name="precio_max" required>
-
-            <button type="submit">Reservar</button>
-        </form>
-        <div id="resultado"></div>
+        <h1>Bienvenido al Sistema de Reservas</h1>
+        <button onclick="window.location.href='solicitar_asientos.html'">Solicitar Asientos</button>
+        <button onclick="window.location.href='realizar_pagos.html'">Realizar Pago</button>
+        <button onclick="window.location.href='estado_asientos.html'">Ver Estado de los Asientos</button>
     </div>
-    <script src="scripts/solicitar_asientos.js"></script>
 </body>
 </html>
