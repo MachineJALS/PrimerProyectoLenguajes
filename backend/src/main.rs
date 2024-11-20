@@ -1,15 +1,13 @@
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize}; 
 use tokio::net::TcpListener;
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use tokio::sync::Mutex;
 use std::sync::Arc;
 use std::collections::HashMap;
 use rand::seq::SliceRandom;
-use tokio_tungstenite::accept_async;
-use tokio_tungstenite::tungstenite::protocol::Message;
-use rand::prelude::*;
-use futures::StreamExt;
-
+use serde_json::json;
+use std::fs::File;
+use std::io::Write;
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 enum EstadoAsiento {
@@ -41,6 +39,124 @@ struct Solicitud {
     precio_max: f64,
 }
 
+#[tokio::main]
+async fn main() {
+    // Inicializar las secciones y asientos
+    let secciones = Arc::new(Mutex::new(inicializar_secciones()));
+    {
+        let mut secciones_guardadas = secciones.lock().await;
+        ocupar_asientos_aleatoriamente(&mut secciones_guardadas.get_mut(&'A').unwrap(), 5);
+        ocupar_asientos_aleatoriamente(&mut secciones_guardadas.get_mut(&'B').unwrap(), 5);
+        ocupar_asientos_aleatoriamente(&mut secciones_guardadas.get_mut(&'C').unwrap(), 5);
+        ocupar_asientos_aleatoriamente(&mut secciones_guardadas.get_mut(&'D').unwrap(), 5);
+    }
+    {
+        let secciones_guardadas = secciones.lock().await;
+        verificar_asientos(&secciones_guardadas);
+    }
+
+    let listener = TcpListener::bind("192.168.10.26:8080").await.unwrap();
+    println!("Servidor escuchando en 192.168.10.26:8080");
+
+    loop {
+        let (socket, _) = listener.accept().await.unwrap();
+        let secciones = Arc::clone(&secciones);
+        tokio::spawn(handle_client(socket, secciones));
+    }
+}
+
+async fn handle_client(stream: tokio::net::TcpStream, secciones: Arc<Mutex<HashMap<char, Seccion>>>) {
+    let mut reader = BufReader::new(stream);
+    let mut buffer = String::new();
+
+    match reader.read_line(&mut buffer).await {
+        Ok(_) => {
+            let solicitud: Solicitud = match serde_json::from_str(&buffer) {
+                Ok(s) => s,
+                Err(_) => {
+                    println!("Error al parsear la solicitud.");
+                    return;
+                }
+            };
+            println!("Solicitud recibida: {:?}", solicitud);
+
+            let mut secciones = secciones.lock().await;
+
+            println!("Estado de los asientos antes de la reserva:");
+            verificar_asientos(&secciones);
+            
+            let mut mejores_asientos = buscar_mejores_asientos(&secciones, solicitud.cantidad, solicitud.precio_max);
+            let mut response = String::new();
+
+            if let Some(asientos) = &mejores_asientos {
+                for asiento in asientos.iter() {
+                    if let Some(seccion) = secciones.get_mut(&asiento.seccion) {
+                        if let Some(asiento_seleccionado) = seccion.asientos.iter_mut().find(|a| a.fila == asiento.fila && a.numero == asiento.numero) {
+                            asiento_seleccionado.estado = EstadoAsiento::Reservado;
+                        }
+                    }
+                }
+                response = serde_json::to_string(&asientos).unwrap();
+            } else {
+                response = "No se encontraron asientos que cumplan los criterios.".to_string();
+            }
+
+            if let Err(e) = reader.get_mut().write_all(response.as_bytes()).await {
+                eprintln!("Error al enviar la respuesta: {}", e);
+                return;
+            }
+
+            buffer.clear();
+            match reader.read_line(&mut buffer).await {
+                Ok(_) => {
+                    let decision = buffer.trim().to_lowercase();
+                    let confirmacion = match decision.as_str() {
+                        "aceptar" => {
+                            if let Some(asientos) = &mejores_asientos {
+                                for asiento in asientos {
+                                    if let Some(seccion) = secciones.get_mut(&asiento.seccion) {
+                                        if let Some(asiento_seleccionado) = seccion.asientos.iter_mut().find(|a| a.fila == asiento.fila && a.numero == asiento.numero) {
+                                            asiento_seleccionado.estado = EstadoAsiento::Comprado;
+                                        }
+                                    }
+                                }
+                            }
+                            "Asientos comprados exitosamente.".to_string()
+                        },
+                        "rechazar" => {
+                            if let Some(asientos) = &mejores_asientos {
+                                for asiento in asientos {
+                                    if let Some(seccion) = secciones.get_mut(&asiento.seccion) {
+                                        if let Some(asiento_seleccionado) = seccion.asientos.iter_mut().find(|a| a.fila == asiento.fila && a.numero == asiento.numero) {
+                                            asiento_seleccionado.estado = EstadoAsiento::Libre;
+                                        }
+                                    }
+                                }
+                            }
+                            "Asientos liberados.".to_string()
+                        },
+                        _ => "Opción no válida.".to_string(),
+                    };
+
+                    if let Err(e) = reader.get_mut().write_all(confirmacion.as_bytes()).await {
+                        eprintln!("Error al enviar la confirmación: {}", e);
+                    }
+
+                    println!("Estado de los asientos después de la acción del cliente:");
+                    verificar_asientos(&secciones);
+                    guardar_estados_en_json(&secciones);
+
+                }
+                Err(e) => {
+                    eprintln!("Error al leer la decisión del cliente: {}", e);
+                }
+            }
+        }
+        Err(e) => {
+            eprintln!("Error al leer la solicitud: {}", e);
+        }
+    }
+}
 
 
 // Función para ocupar asientos de forma aleatoria
@@ -71,141 +187,6 @@ fn verificar_asientos(secciones: &HashMap<char, Seccion>) {
     for seccion in secciones.values() {
         println!("Verificando asientos en la sección: {}", seccion.nombre);
         mostrar_estados_seccion(seccion);
-    }
-}
-
-#[tokio::main]
-async fn main() {
-    // Inicializar las secciones y asientos
-    let secciones = Arc::new(Mutex::new(inicializar_secciones()));
-
-    let mut secciones_guardadas = secciones.clone();
-    //Ocupar asientos de la seccion A,B,C y D de forma aleatoria
-    {
-        let mut secciones_guardadas = secciones_guardadas.lock().await;
-        ocupar_asientos_aleatoriamente(&mut secciones_guardadas.get_mut(&'A').unwrap(), 5);
-        ocupar_asientos_aleatoriamente(&mut secciones_guardadas.get_mut(&'B').unwrap(), 5);
-        ocupar_asientos_aleatoriamente(&mut secciones_guardadas.get_mut(&'C').unwrap(), 5);
-        ocupar_asientos_aleatoriamente(&mut secciones_guardadas.get_mut(&'D').unwrap(), 5);
-    }
-    
-    // Verificar asientos antes de iniciar el servidor
-    {
-        let secciones_guardadas = secciones.lock().await;
-        verificar_asientos(&secciones_guardadas);
-    }
-
-    //Cambiar la ip a la ip de la maquina 
-    //ipconfing
-    let listener = TcpListener::bind("127.0.0.1:8080").await.unwrap();
-    println!("Servidor escuchando en 127.0.0.1:8080");
-
-    loop {
-        let (socket, _) = listener.accept().await.unwrap();
-        let secciones = Arc::clone(&secciones);
-        tokio::spawn(handle_client(socket, secciones));
-    }
-}
-
-async fn handle_client(stream: tokio::net::TcpStream, secciones: Arc<Mutex<HashMap<char, Seccion>>>) {
-    let mut reader = BufReader::new(stream);
-    let mut buffer = String::new();
-
-    // Leer la solicitud del cliente
-    match reader.read_line(&mut buffer).await {
-        Ok(_) => {
-            // Parsear la solicitud
-            let solicitud: Solicitud = match serde_json::from_str(&buffer) {
-                Ok(s) => s,
-                Err(_) => {
-                    println!("Error al parsear la solicitud.");
-                    return;
-                }
-            };
-            println!("Solicitud recibida: {:?}", solicitud);
-
-            let mut secciones = secciones.lock().await;
-
-            // Verificar asientos antes de la reserva
-            println!("Estado de los asientos antes de la reserva:");
-            verificar_asientos(&secciones);
-            
-            // Buscar los mejores asientos
-            let mut mejores_asientos = buscar_mejores_asientos(&secciones, solicitud.cantidad, solicitud.precio_max);
-            let mut response = String::new();
-
-            if let Some(asientos) = &mejores_asientos {
-                // Marcar asientos como reservados
-                for asiento in asientos.iter() {
-                    if let Some(seccion) = secciones.get_mut(&asiento.seccion) {
-                        if let Some(asiento_seleccionado) = seccion.asientos.iter_mut().find(|a| a.fila == asiento.fila && a.numero == asiento.numero) {
-                            asiento_seleccionado.estado = EstadoAsiento::Reservado;
-                        }
-                    }
-                }
-                response = serde_json::to_string(&asientos).unwrap();
-            } else {
-                response = "No se encontraron asientos que cumplan los criterios.".to_string();
-            }
-
-            // Enviar la respuesta al cliente
-            if let Err(e) = reader.get_mut().write_all(response.as_bytes()).await {
-                eprintln!("Error al enviar la respuesta: {}", e);
-                return;
-            }
-
-            // Leer la respuesta del cliente
-            buffer.clear();
-            match reader.read_line(&mut buffer).await {
-                Ok(_) => {
-                    let decision = buffer.trim().to_lowercase();
-                    let confirmacion = match decision.as_str() {
-                        "aceptar" => {
-                            // Actualizar los asientos a comprados
-                            if let Some(asientos) = &mejores_asientos {
-                                for asiento in asientos {
-                                    if let Some(seccion) = secciones.get_mut(&asiento.seccion) {
-                                        if let Some(asiento_seleccionado) = seccion.asientos.iter_mut().find(|a| a.fila == asiento.fila && a.numero == asiento.numero) {
-                                            asiento_seleccionado.estado = EstadoAsiento::Comprado;
-                                        }
-                                    }
-                                }
-                            }
-                            "Asientos comprados exitosamente.".to_string()
-                        },
-                        "rechazar" => {
-                            // Actualizar los asientos a libres
-                            if let Some(asientos) = &mejores_asientos {
-                                for asiento in asientos {
-                                    if let Some(seccion) = secciones.get_mut(&asiento.seccion) {
-                                        if let Some(asiento_seleccionado) = seccion.asientos.iter_mut().find(|a| a.fila == asiento.fila && a.numero == asiento.numero) {
-                                            asiento_seleccionado.estado = EstadoAsiento::Libre;
-                                        }
-                                    }
-                                }
-                            }
-                            "Asientos liberados.".to_string()
-                        },
-                        _ => "Opción no válida.".to_string(),
-                    };
-
-                    if let Err(e) = reader.get_mut().write_all(confirmacion.as_bytes()).await {
-                        eprintln!("Error al enviar la confirmación: {}", e);
-                    }
-
-                    // Verificar asientos después de la acción del cliente
-                    println!("Estado de los asientos después de la acción del cliente:");
-                    verificar_asientos(&secciones);
-
-                }
-                Err(e) => {
-                    eprintln!("Error al leer la decisión del cliente: {}", e);
-                }
-            }
-        }
-        Err(e) => {
-            eprintln!("Error al leer la solicitud: {}", e);
-        }
     }
 }
 
@@ -308,4 +289,44 @@ fn mostrar_estados_seccion(seccion: &Seccion) {
             asiento.fila, asiento.numero, asiento.estado, asiento.precio
         );
     }
+}
+
+
+// Funcion para subir todos los asientos a un json
+fn guardar_estados_en_json(secciones: &HashMap<char, Seccion>) -> std::io::Result<()> {
+    let mut asientos_json = Vec::new();
+    
+    // Establece la ruta predeterminada
+    let ruta = "../../frontend/asientos.json";
+
+    // Itera por cada sección y asiento para construir el JSON
+    for (nombre_seccion, seccion) in secciones {
+        for asiento in &seccion.asientos {
+            let estado_asiento = match asiento.estado {
+                EstadoAsiento::Libre => "libre",
+                EstadoAsiento::Reservado => "reservado",
+                EstadoAsiento::Comprado => "ocupado",
+            };
+
+            let asiento_json = json!({
+                "Seccion": nombre_seccion.to_string(),
+                "fila": asiento.fila,
+                "columna": asiento.numero,
+                "estado": estado_asiento,
+            });
+
+            asientos_json.push(asiento_json);
+        }
+    }
+
+    // Convierte los datos de asientos a JSON
+    let contenido_json = serde_json::to_string_pretty(&asientos_json)?;
+
+    // Crea o sobrescribe el archivo en la ruta especificada
+    let mut archivo = File::create(ruta)?;
+    archivo.write_all(contenido_json.as_bytes())?;
+
+    println!("Asientos guardados en JSON en la ruta: {}", ruta);
+
+    Ok(())
 }

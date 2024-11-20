@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Compra de Asientos</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <header>
+        <nav class="navbar">
+            <a href="/">Compra</a>
+            <a href="/estado">Estado</a>
+        </nav>
+    </header>
+
+    <main class="container">
+        <h1>Compra de Asientos</h1>
+        <label for="cantidad-asientos">Cantidad de Asientos:</label>
+        <input type="number" id="cantidad-asientos" placeholder="Ej: 3" />
+
+        <label for="precio-maximo">Precio Máximo por Asiento:</label>
+        <input type="number" id="precio-maximo" placeholder="Ej: 100" />
+
+        <button onclick="comprarAsientos()">Solicitar Asientos</button>
+
+        <div id="asiento-detalle"></div>
+    </main>
+
+    <script>
+        async function comprarAsientos() {
+            const cantidadAsientos = parseInt(document.getElementById('cantidad-asientos').value);
+            const precioMaximo = parseInt(document.getElementById('precio-maximo').value);
+
+            if (isNaN(cantidadAsientos) || isNaN(precioMaximo)) {
+                alert('Debe especificar una cantidad de asientos y un precio máximo.');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/comprar', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        cantidad: cantidadAsientos,
+                        precio_maximo: precioMaximo
+                    })
+                });
+
+                const result = await response.json();
+                
+                if (result.status === "success") {
+                    const mensaje = result.mensaje + "\n\n" + "Asientos asignados:\n" + result.asientos_asignados;
+                    
+                    if (confirm(mensaje + "\n¿Aceptas estos asientos?")) {
+                        await enviarConfirmacion("aceptar");
+                    } else {
+                        await enviarConfirmacion("rechazar");
+                    }
+                } else {
+                    alert(result.mensaje);
+                }
+            } catch (error) {
+                console.error('Error al solicitar compra de asientos:', error);
+            }
+        }
+
+        async function enviarConfirmacion(decision) {
+            try {
+                const response = await fetch('/api/confirmar', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ decision: decision })
+                });
+                
+                const result = await response.json();
+                alert(result.mensaje);
+            } catch (error) {
+                console.error('Error al enviar confirmación de asientos:', error);
+            }
+        }
+    </script>
+</body>
+</html>
